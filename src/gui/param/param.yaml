@@ -1,0 +1,115 @@
+/base/camera_node:
+  ros__parameters:
+    camera_ip: 192.168.1.108
+    camera_login_user: admin
+    camera_login_pwd: DAHUA123
+    camera_channel: 0
+/base/comm_node:
+  ros__parameters:
+    plc_ip: 192.168.1.11
+    plc_port: 503
+    plc_rate: 100
+    t_spd_cmd: 0
+    t_spd_set: 1
+    t_spd_act: 2
+    t_pos_set: 3
+    t_pos_act: 4
+    h_spd_cmd: 5
+    h_spd_set: 6
+    h_spd_act: 7
+    h_pos_set: 8
+    h_pos_act: 9
+    sc_on_off: 10
+    sc_statue: 11
+    auto_on_off: 12
+    auto_statue: 13
+    id: 14
+/base/gui_node:
+  ros__parameters:
+    marker_ref:
+      20:
+      - 709
+      - 138
+      - 542
+      - 173
+      40:
+      - 520
+      - 152
+      - 537
+      - 175
+      60:
+      - 315
+      - 141
+      - 529
+      - 173
+      80:
+      - 315
+      - 141
+      - 529
+      - 173
+      100:
+      - 314
+      - 141
+      - 528
+      - 174
+      120:
+      - 314
+      - 141
+      - 528
+      - 174
+      140:
+      - 314
+      - 141
+      - 528
+      - 174
+      160:
+      - 315
+      - 141
+      - 529
+      - 173
+      180:
+      - 314
+      - 141
+      - 528
+      - 174
+      45000:
+      - 315
+      - 141
+      - 529
+      - 173
+/base/marker_node:
+  ros__parameters:
+    length: 900
+    width: 300
+    threshold_bin: 100
+    kernel: 51
+    threshold_k: 1.15
+/base/trolley_control_node:
+  ros__parameters:
+    trolley_spd_b: 1.0
+    trolley_spd_j: 0.0
+    trolley_spd_w: 0.0
+    hoist_height: 50000
+    trolley_spd: 3000
+    trolley_acc: 6.0
+    trolley_dec: 6.0
+    trolley_spd_per: 0.9
+/base/spss_node:
+  ros__parameters:
+    fixed_obstacle:
+    - - 9000
+      - 8000
+      - 12000
+    - - 12000
+      - 200
+      - 43000
+    - - 43000
+      - 8000
+      - 46000
+    - - 46000
+      - 0
+      - 90000
+    - - 0
+      - 200
+      - 9000
+

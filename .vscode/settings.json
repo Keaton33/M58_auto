@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/ros/M58_auto/install/interface/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/",
+        "/home/ros/.local/lib/python3.10/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/ros/M58_auto/install/interface/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble",
+        "/home/ros/.local/lib/python3.10/site-packages",
+        "./install/comm/lib/python3.10/site-packages/comm"
+    ],
+    "cmake.ignoreCMakeListsMissing": true
+}
