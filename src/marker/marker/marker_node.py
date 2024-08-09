@@ -148,8 +148,11 @@ class MarkerProcess(Node):
             self.marker_msg.dis_diff = int((self.marker_msg.t_y - self.marker_msg.t_y_ref) * self.marker_msg.scale)
 
             self.marker_pub.publish(self.marker_msg)
-            
+
+            img = cv2.circle(img, (self.marker_msg.g_x_ref, self.marker_msg.t_y_ref), 15, [0, 255, 0], -1)
+
         print(self.marker_msg)
+
         img_pub = self.cvb.cv2_to_imgmsg(img)
         self.marker_img_pub.publish(img_pub)
         # img_resize = cv2.resize(img,(800,600))

@@ -33,6 +33,7 @@ class Gui(Node):
         self.t_y = msg.t_y
         self.dis_diff = msg.dis_diff
         self.t_y_ref = msg.t_y_ref
+        self.skew = round(msg.s,2)
     
     def cb_camera(self, msg:Image):
         cvb = cv_bridge.CvBridge()
@@ -41,13 +42,15 @@ class Gui(Node):
     def cb_plc(self, msg:PLC):
         self.t_spd_cmd = msg.t_spd_cmd
         self.t_spd_act = msg.t_spd_act
-        self.t_spd_set = msg.t_spd_set
+        self.t_spd_set = round(msg.t_spd_set/100, 1)
         self.t_pos_act = msg.t_pos_act
         self.h_spd_cmd = msg.h_spd_cmd
         self.h_spd_act = msg.h_spd_act
         self.h_pos_act = msg.h_pos_act
         self.sc_on_off = msg.sc_on_off
         self.auto_on_off = msg.auto_on_off
+        self.t_pos_set = msg.t_pos_set
+        self.h_pos_set = msg.h_pos_set
 
     def cb_trolley(self, msg:Trolley):
         pass
@@ -75,7 +78,9 @@ class AutoAPP(QMainWindow):
         self.timer1 = QTimer()
         self.timer1.timeout.connect(lambda: self.show_curve(center_act=mynode.t_y, center_set=mynode.t_y_ref, dis_diff=mynode.dis_diff,\
                                                             t_spd_act=mynode.t_spd_act, t_spd_set=mynode.t_spd_set,t_spd_cmd=mynode.t_spd_cmd ))
-        self.timer1.timeout.connect(lambda: self.show_data(center_act=mynode.t_y))
+        self.timer1.timeout.connect(lambda: self.show_data(dis_diff= mynode.dis_diff,skew=mynode.skew, spd_cmd=mynode.t_spd_cmd,\
+                                                            spd_set=mynode.t_spd_set, spd_act=mynode.t_spd_act, t_pos_act=mynode.t_pos_act,\
+                                                                  t_pos_set=mynode.t_pos_set, h_pos_act=mynode.h_pos_act, h_pos_set=mynode.h_pos_set))
         self.timer1.start(100)
 
         self.setting_timer = QTimer()
@@ -118,15 +123,17 @@ class AutoAPP(QMainWindow):
             pixmap = QPixmap.fromImage(q_image)
             self.main_window.ui.label_img.setPixmap(pixmap)
 
-    def show_data(self, center_set=0, center_act=0, spd_cmd=0, spd_set=0, spd_act=0, skew_act=0.0, skew_set=0.0):
-        self.main_window.ui.label_hbCenterSet.setText(str(center_set))
-        self.main_window.ui.label_hbCenterAct.setText(str(center_act))
-        self.main_window.ui.label_trolleySpdCmd.setText(str(skew_act))
+    def show_data(self, dis_diff=0, skew=0, spd_cmd=0, spd_set=0, spd_act=0, t_pos_act=0, t_pos_set=0, h_pos_act=0, h_pos_set=0):
+        self.main_window.ui.label_disDiff.setText(str(dis_diff))
+        self.main_window.ui.label_skew.setText(str(skew))
+        self.main_window.ui.label_trolleySpdCmd.setText(str(spd_cmd))
         self.main_window.ui.label_trolleySpdSet.setText(str(spd_set))
         self.main_window.ui.label_trolleySpdAct.setText(str(spd_act))
-        # self.main_window.ui.label_hbSkewAct.setText(str(skew_act))
-        # self.main_window.ui.label_hbSkewSet.setText(str(skew_set))
-
+        self.main_window.ui.label_trolley_act_pos.setText(str(t_pos_act))
+        self.main_window.ui.label_trolley_target_pos.setText(str(t_pos_set))
+        self.main_window.ui.label_hoist_act_pos.setText(str(h_pos_act))
+        self.main_window.ui.label_hoist_target_pos.setText(str(h_pos_set))
+        
     def show_curve(self, center_act=0, center_set=0, dis_diff=0, t_spd_set=0, t_spd_act=0, t_spd_cmd=0, h_spd_act=0, h_height=0):
         self.data1_1.append(center_act)
         self.data1_2.append(center_set)
@@ -138,7 +145,7 @@ class AutoAPP(QMainWindow):
         self.trend_curve1_2.setData(self.data1_2)
         self.trend_curve1_3.setData(self.data1_3)
         
-        self.data2_1.append(t_spd_set/100)
+        self.data2_1.append(t_spd_set)
         self.data2_2.append(t_spd_act)
         self.data2_3.append(t_spd_cmd)
         self.data2_1 = self.data2_1[-self.data_limit:]
