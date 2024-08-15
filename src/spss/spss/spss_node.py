@@ -1,3 +1,4 @@
+import ast
 import yaml
 import numpy as np
 import rclpy
@@ -16,16 +17,19 @@ class Profile(Node):
         with open('/home/ros/M58_auto/src/gui/param/param.yaml', 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
             print(data)
-            data['/base/spss_node']['ros__parameters']['fixed_obstacle']=[[0, 200, 9000], [9000, 8000, 12000],[12000,200,43000],[43000,8000,46000],[46000,0,90000]]
+            profile = [[0, 200, 9000], [9000, 8000, 12000],[12000,200,43000],[43000,8000,46000],[46000,0,90000]]
+            data['/base/spss_node']['ros__parameters']['fixed_obstacle']= str(profile)
             print(data)
         with open('/home/ros/M58_auto/src/gui/param/param.yaml', 'w', encoding='utf-8') as file:
-            yaml.safe_dump(data, file, sort_keys=False)
+            yaml.safe_dump(data, file, sort_keys=False, default_flow_style=None)
         '''
         
         with open('/home/ros/M58_auto/src/gui/param/param.yaml', 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
             fixed_obstacle = data['/base/spss_node']['ros__parameters']['fixed_obstacle']
-            data_np = np.array(fixed_obstacle)
+            fixed_obstacle_list = ast.literal_eval(fixed_obstacle)
+            data_np = np.array(fixed_obstacle_list)
+            print(data_np[0])
             self.fixed_obstacle = data_np[data_np[:, 0].argsort()]
             print(self.fixed_obstacle)
                 

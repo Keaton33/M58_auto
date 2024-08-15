@@ -20,7 +20,7 @@ class TrolleyCtl(Node):
         self.set_spd = [0]
         self.smooth_spd = [0]
         self.distance_diff_record = [0]
-
+        # self.get_parameter_or('length', 0).value
         self.declare_parameter("trolley_spd_b", 3.5)
         self.declare_parameter("trolley_spd_j", 0.0)
         self.declare_parameter("trolley_spd_w", 0.01)
@@ -140,7 +140,7 @@ class TrolleyCtl(Node):
         if trolley_spd_cmd > 0:
             if target_trolley >= act_trolley:
                 trolley_spd_limit = (target_trolley - act_trolley) * k
-                trolley_spd_limit = min(100, max(10, trolley_spd_limit))
+                trolley_spd_limit = min(100*self.t_spd_per, max(10, trolley_spd_limit))
                 v_cmd = min(trolley_spd_cmd, trolley_spd_limit)
             else:
                 v_cmd = 0
@@ -148,7 +148,7 @@ class TrolleyCtl(Node):
         elif trolley_spd_cmd < 0:
             if target_trolley <= act_trolley:
                 trolley_spd_limit = (target_trolley - act_trolley) * k
-                trolley_spd_limit = max(-100, min(-10, trolley_spd_limit))
+                trolley_spd_limit = max(-100*self.t_spd_per, min(-10, trolley_spd_limit))
                 v_cmd = max(trolley_spd_cmd, trolley_spd_limit)
 
             else:
@@ -217,6 +217,7 @@ class TrolleyCtl(Node):
             #  限制pid后在基本速度上调整下周期速度变化量????只变一次
         else:
             speed_out = self.smooth_spd[-1]
+        speed_out = max(-100, min(100, speed_out))
         return speed_out
 
     @staticmethod

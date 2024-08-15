@@ -1,115 +1,83 @@
 /base/camera_node:
-  ros__parameters:
-    camera_ip: 192.168.1.108
-    camera_login_user: admin
-    camera_login_pwd: DAHUA123
-    camera_channel: 0
+  ros__parameters: {camera_ip: 192.168.1.108, camera_login_user: admin, camera_login_pwd: DAHUA123,
+    camera_channel: 0}
 /base/comm_node:
-  ros__parameters:
-    plc_ip: 192.168.1.11
-    plc_port: 503
-    plc_rate: 100
-    t_spd_cmd: 0
-    t_spd_set: 1
-    t_spd_act: 2
-    t_pos_set: 3
-    t_pos_act: 4
-    h_spd_cmd: 5
-    h_spd_set: 6
-    h_spd_act: 7
-    h_pos_set: 8
-    h_pos_act: 9
-    sc_on_off: 10
-    sc_statue: 11
-    auto_on_off: 12
-    auto_statue: 13
-    id: 14
+  ros__parameters: {plc_ip: 192.168.1.11, plc_port: 503, t_spd_cmd: 0, t_spd_set: 1,
+    t_spd_act: 2, t_pos_set: 3, t_pos_act: 5, h_spd_cmd: 7, h_spd_set: 8, h_spd_act: 9,
+    h_pos_set: 10, h_pos_act: 12, sc_on_off: 14, sc_statue: 15, auto_on_off: 16, auto_statue: 17,
+    id: 18}
 /base/gui_node:
   ros__parameters:
     marker_ref:
-      20:
-      - 709
-      - 138
-      - 542
-      - 173
-      40:
-      - 520
-      - 152
-      - 537
-      - 175
-      60:
-      - 315
-      - 141
-      - 529
-      - 173
-      80:
-      - 315
-      - 141
-      - 529
-      - 173
-      100:
-      - 314
-      - 141
-      - 528
-      - 174
-      120:
-      - 314
-      - 141
-      - 528
-      - 174
-      140:
-      - 314
-      - 141
-      - 528
-      - 174
-      160:
-      - 315
-      - 141
-      - 529
-      - 173
-      180:
-      - 314
-      - 141
-      - 528
-      - 174
-      45000:
-      - 315
-      - 141
-      - 529
-      - 173
+      20: [709, 138, 542, 173]
+      40: [520, 152, 537, 175]
+      60: [315, 141, 529, 173]
+      80: [315, 141, 529, 173]
+      100: [314, 141, 528, 174]
+      120: [314, 141, 528, 174]
+      140: [314, 141, 528, 174]
+      160: [315, 141, 529, 173]
+      180: [314, 141, 528, 174]
+      45000: [315, 141, 529, 173]
 /base/marker_node:
-  ros__parameters:
-    length: 900
-    width: 300
-    threshold_bin: 100
-    kernel: 51
-    threshold_k: 1.15
+  ros__parameters: {length: 900, width: 300, threshold_bin: 100, kernel: 51, threshold_k: 1.15}
 /base/trolley_control_node:
-  ros__parameters:
-    trolley_spd_b: 1.0
-    trolley_spd_j: 0.0
-    trolley_spd_w: 0.0
-    hoist_height: 50000
-    trolley_spd: 3000
-    trolley_acc: 6.0
-    trolley_dec: 6.0
-    trolley_spd_per: 0.9
+  ros__parameters: {trolley_spd_b: 3.5, trolley_spd_j: 0.0, trolley_spd_w: 0.01, trolley_rate: 0.05,
+    hoist_height: 50000, trolley_spd: 3000, trolley_acc: 6.0, trolley_dec: 6.0, trolley_spd_per: 0.9,
+    sway_threshold: 300}
 /base/spss_node:
+  ros__parameters: {fixed_obstacle: '[[0, 200, 9000], [9000, 8000, 12000], [12000,
+      200, 43000], [43000, 8000, 46000], [46000, 0, 90000]]'}
+/base/lslidar_driver_node:
   ros__parameters:
-    fixed_obstacle:
-    - - 9000
-      - 8000
-      - 12000
-    - - 12000
-      - 200
-      - 43000
-    - - 43000
-      - 8000
-      - 46000
-    - - 46000
-      - 0
-      - 90000
-    - - 0
-      - 200
-      - 9000
+    device_ip: 192.168.1.200
+    lidar_type: ch64w                 # 雷达类型  ch16x1/ch64w/ch128x1/ch128s1
+    msop_port: 2368
+    difop_port: 2369
+    pcl_type: false
+    add_multicast: false
+    group_ip: 224.1.1.2
+    frame_id: laser_link
+    min_range: 0.15
+    max_range: 500.0
+    packet_rate: 11228.0
+    angle_disable_min: 0
+    angle_disable_max: 0
+    topic_name: lslidar_point_cloud
+    horizontal_angle_resolution: 0.4     #10Hz:0.2  20Hz:0.4 5Hz: 0.1
+    use_time_service: false              #是否使用GPS/ptp/ntp授时
+    echo_num: 0                          #仅双回波模式下有效，0表示发布所有点云，1表示发布第一次回波点云，2表示发布第二次回波点云
+    publish_scan: true
+    channel_num: 63
+    #pcap: /media/ls/C036-3981/leishen/pcap包数据/ch64w/转圈.pcap                        #pcap包路径，加载pcap包时打开此注释
 
+
+
+/base/transform_node:
+  ros__parameters:
+    filter_pass_x: false
+    filter_pass_y: false
+    filter_pass_z: false
+    filter_pass_x_min: -10.0
+    filter_pass_x_max: 10.0
+    filter_pass_y_min: -10.0
+    filter_pass_y_max: 10.0
+    filter_pass_z_min: -10.0
+    filter_pass_z_max: 10.0
+
+    filter_removal: false
+    meank: 50 #统计点数
+    threshold: 1 #标准差倍数
+
+    filter_voxel: false
+    size_x: 0.1
+    size_y: 0.1
+    size_z: 0.1 
+
+    tf: true
+    tf_x: 2.0
+    tf_y: 0.0
+    tf_z: 0.0
+    tf_roll: 0.0 #弧度
+    tf_pitch: 0.0 
+    tf_yaw: 0.0

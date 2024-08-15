@@ -1,0 +1,44 @@
+scan_matcher:
+  ros__parameters:
+    global_frame_id: "map"  
+    robot_frame_id: "base_link" 
+    registration_method: "NDT"  #normal distributions transform
+    ndt_resolution: 2.0 #越小分辨率越高
+    ndt_num_threads: 2  #ndt线程数
+    gicp_corr_dist_threshold: 5.0 #generalized-ICP
+    trans_for_mapupdate: 0.5  #位移触发地图更新
+    vg_size_for_input: 0.1  #voxel downsample
+    vg_size_for_map: 0.1  #map voxel
+    use_min_max_filter: true 
+    scan_min_range: 0.2
+    scan_max_range: 200.0
+    scan_period: 0.05 #lidar hz
+    map_publish_period: 0.1  #地图发布周期s
+    num_targeted_cloud: 20  #匹配目标数量
+    set_initial_pose: true
+    initial_pose_x: 0.0
+    initial_pose_y: 0.0
+    initial_pose_z: 0.0
+    initial_pose_qx: 0.0
+    initial_pose_qy: 0.0
+    initial_pose_qz: 0.0
+    initial_pose_qw: 1.0
+    use_imu: false
+    use_odom: false
+    debug_flag: false
+
+graph_based_slam:
+    ros__parameters:
+      registration_method: "NDT"
+      ndt_resolution: 1.0
+      ndt_num_threads: 2
+      voxel_leaf_size: 0.1
+      loop_detection_period: 3000 #回环检测周期 ms
+      threshold_loop_closure_score: 0.7 #回环闭合分数阈值
+      distance_loop_closure: 100.0  #回环闭合距离阈值
+      range_of_searching_loop_closure: 20.0 #搜索回环闭合范围
+      search_submap_num: 2  #搜索回环闭合子图数量
+      num_adjacent_pose_cnstraints: 5 #优化中使用的邻近位姿约束数量
+      use_save_map_in_loop: true  #回环闭合检测中保存
+      debug_flag: true
+

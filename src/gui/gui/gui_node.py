@@ -26,6 +26,7 @@ class Gui(Node):
         self.t_y = 0
         self.dis_diff = 0
         self.t_y_ref = 0
+        self.skew = 0
         self.img = None
 
     def cb_marker(self, msg:Marker):
@@ -189,7 +190,7 @@ class AutoAPP(QMainWindow):
             data['/base/gui_node']['ros__parameters']['marker_ref']=self.points
             print(data)
         with open('/home/ros/M58_auto/src/gui/param/param.yaml', 'w', encoding='utf-8') as file:
-            yaml.safe_dump(data, file, sort_keys=False)
+            yaml.safe_dump(data, file, sort_keys=False, default_flow_style=None)
 
     def set_target(self):
         pass

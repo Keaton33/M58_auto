@@ -11,13 +11,13 @@ from cv_bridge import CvBridge, CvBridgeError
 from interface.msg import PLC
 
 
-'''
-    0-------------------0
- ^  |            ___    |
- |  |t_center . |___|   |
- op |         g_center  |
-    0-------------------0
-'''
+
+#     0-------------------0
+#  ^  |            ___    |
+#  |  |t_center . |___|   |
+#  op |         g_center  |
+#     0-------------------0
+
 
 
 class MarkerProcess(Node):
@@ -90,18 +90,18 @@ class MarkerProcess(Node):
         img_gausi = cv2.GaussianBlur(img_gray, (self.kernel,self.kernel), 0)  # 均值滤波
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (self.kernel, self.kernel))
         closing_image = cv2.morphologyEx(img_gausi, cv2.MORPH_CLOSE, kernel)    # 闭运算则是先做膨胀再做腐蚀
-        '''
-        # 膨胀操作可以用来扩大物体边界，常用于填补物体内部的小孔或增加物体的尺寸
-        dilated_image = cv2.dilate(image, kernel)
-        # 腐蚀操作则相反，它会缩小物体的边界，常用于移除边缘上的小点或去除噪声。
-        eroded_image = cv2.erode(image, kernel)
-        # 开运算通常先执行腐蚀再执行膨胀，它有助于消除细小的噪声并保持物体的轮廓清晰。
-        opening_image = cv2.morphologyEx(img_gausi, cv2.MORPH_OPEN, kernel)
-        # 闭运算则是先做膨胀再做腐蚀，这有助于填充小的空洞并将物体合并。
-        # 执行形态学梯度计算（膨胀减去腐蚀）
-        gradient_image = cv2.morphologyEx(closing_image, cv2.MORPH_GRADIENT, kernel)
-        closing_image = cv2.Canny(img_gray, 100, 300)
-        '''
+        
+        # # 膨胀操作可以用来扩大物体边界，常用于填补物体内部的小孔或增加物体的尺寸
+        # dilated_image = cv2.dilate(image, kernel)
+        # # 腐蚀操作则相反，它会缩小物体的边界，常用于移除边缘上的小点或去除噪声。
+        # eroded_image = cv2.erode(image, kernel)
+        # # 开运算通常先执行腐蚀再执行膨胀，它有助于消除细小的噪声并保持物体的轮廓清晰。
+        # opening_image = cv2.morphologyEx(img_gausi, cv2.MORPH_OPEN, kernel)
+        # # 闭运算则是先做膨胀再做腐蚀，这有助于填充小的空洞并将物体合并。
+        # # 执行形态学梯度计算（膨胀减去腐蚀）
+        # gradient_image = cv2.morphologyEx(closing_image, cv2.MORPH_GRADIENT, kernel)
+        # closing_image = cv2.Canny(img_gray, 100, 300)
+        
         ret, img_bin = cv2.threshold(closing_image, self.threshold_bin, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(img, contours, -1, (0,0,255), thickness=3)
@@ -149,7 +149,8 @@ class MarkerProcess(Node):
 
             self.marker_pub.publish(self.marker_msg)
 
-            img = cv2.circle(img, (self.marker_msg.g_x_ref, self.marker_msg.t_y_ref), 15, [0, 255, 0], -1)
+            # img = cv2.circle(img, (self.marker_msg.g_x_ref, self.marker_msg.t_y_ref), 15, [0, 255, 0], -1)
+            cv2.drawMarker(img, (self.marker_msg.g_x_ref, self.marker_msg.t_y_ref), [0, 255, 0], markerType=cv2.MARKER_CROSS, markerSize=35, thickness=5)
 
         print(self.marker_msg)
 
@@ -170,3 +171,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

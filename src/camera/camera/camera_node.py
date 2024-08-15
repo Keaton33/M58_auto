@@ -1,3 +1,4 @@
+'''
 import ffmpeg
 import numpy as np
 import cv2
@@ -89,6 +90,104 @@ def main():
     rclpy.shutdown()
 
 
+
+if __name__ == "__main__":
+    main()
+'''
+
+import ffmpeg
+import numpy as np
+import cv2
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
+class IPCameraPublisher(Node):
+    def __init__(self):
+        super().__init__('camera_node')
+
+        # Declare and retrieve parameters
+        self.declare_parameter('camera_ip', "192.168.1.108")
+        self.declare_parameter('camera_login_user', "admin")
+        self.declare_parameter('camera_login_pwd', "DAHUA123")
+        self.declare_parameter('camera_channel', 0)
+
+        self.camera_ip = self.get_parameter('camera_ip').get_parameter_value().string_value
+        self.camera_login_user = self.get_parameter('camera_login_user').get_parameter_value().string_value
+        self.camera_login_pwd = self.get_parameter('camera_login_pwd').get_parameter_value().string_value
+        self.camera_channel = self.get_parameter("camera_channel").get_parameter_value().integer_value
+
+        self.rtsp_url = (
+            f"rtsp://{self.camera_login_user}:{self.camera_login_pwd}@{self.camera_ip}/"
+            f"cam/realmonitor?channel=1&subtype={self.camera_channel}"
+        )
+        self.ffmpeg_args = {
+            "rtsp_transport": "tcp",
+            "fflags": "nobuffer",
+            "flags": "low_delay"
+        }
+
+        self.publisher_ = self.create_publisher(Image, 'ipcamera', 10)
+        self.bridge = CvBridge()
+        self.publish_image()
+
+    def publish_image(self):
+        self.get_logger().info("Connecting to IP camera at " + self.rtsp_url)
+        
+        # Try to probe the camera stream
+        try:
+            probe = ffmpeg.probe(self.rtsp_url)
+        except ffmpeg.Error as e:
+            self.get_logger().warning("FFmpeg error: " + str(e))
+            probe = None
+
+        if not probe:
+            self.get_logger().warning("Unable to connect to IP camera. Retrying...")
+            self.get_clock().sleep_for(rclpy.duration.Duration(seconds=1))
+            return self.publish_image()  # Retry connection
+
+        # Retrieve stream information
+        self.get_logger().info("Connected to IP camera: " + probe['format']["filename"])
+        video_stream = next(stream for stream in probe['streams'] if stream['codec_type'] == 'video')
+        width, height = video_stream['width'], video_stream['height']
+
+        process = (
+            ffmpeg
+            .input(self.rtsp_url, **self.ffmpeg_args)
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
+            .run_async(pipe_stdout=True)
+        )
+
+        try:
+            while rclpy.ok():  # Loop runs while ROS is running
+                in_bytes = process.stdout.read(width * height * 3)
+                if not in_bytes:
+                    self.get_logger().warning("No more frames received from camera.")
+                    break  # Exit the loop if no frames are received
+
+                frame = np.frombuffer(in_bytes, np.uint8).reshape([height, width, 3])
+                # No need to convert BGR to RGB if it's already in RGB format
+
+                try:
+                    image_msg = self.bridge.cv2_to_imgmsg(frame, encoding="rgb8")
+                    self.publisher_.publish(image_msg)
+                except CvBridgeError as e:
+                    self.get_logger().error("CV Bridge Error: " + str(e))
+
+        finally:
+            process.kill()  # Ensure process is terminated when the loop ends
+
+def main():
+    rclpy.init()
+    camera_publisher = IPCameraPublisher()
+    try:
+        rclpy.spin(camera_publisher)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        camera_publisher.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
