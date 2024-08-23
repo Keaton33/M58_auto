@@ -1,10 +1,15 @@
+from itertools import cycle
 import threading
-from UI import main_window, setting_window, alarm_window, comm_window, automation_window
+
+from matplotlib import pyplot as plt
+from sklearn.cluster import DBSCAN
+from UI import main_window, setting_window, alarm_window, comm_window
+import numpy as np
 from rclpy.node import Node
 import rclpy
-from interface.msg import Marker, PLC, Trolley
+from interface.msg import Marker, PLC, Trolley, SPSS
 import rclpy.time
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2
 import cv_bridge
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QImage, QPixmap
@@ -13,6 +18,14 @@ import sys
 import cv2
 import pyqtgraph as pg
 import yaml
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+import vtk
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from vtkmodules.util import numpy_support
+
+
 
 
 class Gui(Node):
@@ -22,12 +35,17 @@ class Gui(Node):
         self.sub_camera = self.create_subscription(Image, 'ipcamera_marker', self.cb_camera, 10)
         self.sub_plc = self.create_subscription(PLC, 'plc', self.cb_plc, 10)
         self.sub_trolley = self.create_subscription(Trolley, 'trolley', self.cb_trolley, 10)
+        self.sub_spss = self.create_subscription(SPSS, 'spss', self.cb_spss, 10)
+        self.sub_pc = self.create_subscription(PointCloud2, 'tf_pointcloud2', self.cb_pc, 10)
+
         self.marker = [0,0,0,0]
         self.t_y = 0
         self.dis_diff = 0
         self.t_y_ref = 0
         self.skew = 0
         self.img = None
+        self.profile_fix,self.profile_bay,self.path = [],[],[]
+        self.pos = []
 
     def cb_marker(self, msg:Marker):
         self.marker = [msg.g_x, msg.t_y, msg.g_l, msg.t_l]
@@ -56,6 +74,18 @@ class Gui(Node):
     def cb_trolley(self, msg:Trolley):
         pass
 
+    def cb_spss(self, msg:SPSS):
+        self.profile_fix = msg.profile_fix
+        self.profile_bay = msg.profile_bay
+        self.path = msg.path
+
+    def cb_pc(self, msg:PointCloud2):
+        # pc_np = point_cloud2.read_points(msg)
+        points = np.frombuffer(msg.data, dtype=np.float32).reshape(-1, 8)
+        self.pos =  points[:, :3]
+
+
+
 class AutoAPP(QMainWindow):
     def __init__(self, mynode:Gui):
         QMainWindow.__init__(self)
@@ -70,12 +100,68 @@ class AutoAPP(QMainWindow):
         self.data1_1, self.data1_2, self.data1_3 = [], [], []
         self.data2_1, self.data2_2, self.data2_3 = [], [], []
         self.data3_1, self.data3_2 = [], []
+        self.data4_1, self.data4_2 = [], []
         self.data_limit = 1000
         self.points = {}
 
+
+        # 预定义颜色
+        self.colors = plt.cm.get_cmap('tab10', 100).colors  # 选择一个足够大的 colormap
+
+        fig = Figure()
+        self.canvans = FigureCanvas(fig)
+        fig.subplots_adjust(left=0.03, right=0.99, top=1, bottom=0.04)
+        self.ax = fig.add_subplot()
+        self.ax.tick_params(axis='both',which='major',labelsize=6)
+        # self.ax.set_xlim(0, 120)
+        # self.ax.set_ylim(-10, 55)
+        self.ax.set_xlim(-5, 5)
+        self.ax.set_ylim(-5, 5)
+        self.line_fix, = self.ax.plot([],[],marker=',', linestyle='-', color='black',markersize=2)
+        self.line_block, = self.ax.plot([],[],marker='o', linestyle='-', color='b',markersize=2)
+        # self.line_block = self.ax.scatter([],[], marker=',',s = 1)
+        self.spd = self.ax.scatter([], [], color='red', marker='s',s = 200)
+        self.main_window.ui.tab.layout().addWidget(self.canvans)
+
+        # 初始化 VTK 渲染窗口和交互器
+        self.vtkWidget = QVTKRenderWindowInteractor(self.main_window.ui.tab_2)
+        self.main_window.ui.tab_2.layout().addWidget(self.vtkWidget)
+
+        # 设置渲染器
+        self.ren = vtk.vtkRenderer()
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
+
+        # 初始化点云数据结构
+        self.points_vtk = vtk.vtkPoints()
+        self.vertices = vtk.vtkCellArray()  # 必需的顶点单元
+        self.polydata = vtk.vtkPolyData()
+        self.polydata.SetPoints(self.points_vtk)
+        self.polydata.SetVerts(self.vertices)  # 将顶点单元添加到 PolyData
+
+        # 设置点云的 Mapper 和 Actor
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(self.polydata)
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().SetColor(1, 0, 0)  # 红色点云
+        actor.GetProperty().SetPointSize(3)   # 点大小
+        self.ren.AddActor(actor)
+
+        # 设置背景和初始化交互器
+        self.ren.SetBackground(0, 0, 0)
+        self.vtkWidget.GetRenderWindow().GetInteractor().Initialize()  
+
+        # 手动设置摄像机位置和焦点
+        self.ren.GetActiveCamera().SetPosition(3, 1, 10)
+        # self.ren.GetActiveCamera().SetFocalPoint(3, 1, 0)
+        # self.ren.GetActiveCamera().SetViewUp(0,1,0)
+        self.ren.ResetCameraClippingRange()
+
+
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: self.show_pix(image=mynode.img))
-        self.timer.start(40)
+        self.timer.start(20)
+
         self.timer1 = QTimer()
         self.timer1.timeout.connect(lambda: self.show_curve(center_act=mynode.t_y, center_set=mynode.t_y_ref, dis_diff=mynode.dis_diff,\
                                                             t_spd_act=mynode.t_spd_act, t_spd_set=mynode.t_spd_set,t_spd_cmd=mynode.t_spd_cmd ))
@@ -83,6 +169,11 @@ class AutoAPP(QMainWindow):
                                                             spd_set=mynode.t_spd_set, spd_act=mynode.t_spd_act, t_pos_act=mynode.t_pos_act,\
                                                                   t_pos_set=mynode.t_pos_set, h_pos_act=mynode.h_pos_act, h_pos_set=mynode.h_pos_set))
         self.timer1.start(100)
+
+        self.timer2 = QTimer()
+        self.timer2.timeout.connect(lambda: self.update_profile(path=mynode.path, profile_fix=mynode.profile_fix, profile_bay=mynode.profile_bay))
+        self.timer2.timeout.connect(lambda: self.update_profile_pc(point_array=mynode.pos))
+        self.timer2.start(10)
 
         self.setting_timer = QTimer()
         self.setting_timer.timeout.connect(lambda: self.set_points(mynode.h_pos_act, mynode.marker))
@@ -102,10 +193,15 @@ class AutoAPP(QMainWindow):
         self.trend_curve3_1 = self.trend_chart_3.plot(pen='r')  # Blue curve
         self.trend_curve3_2 = self.trend_chart_3.plot(pen='g')  # Blue curve
 
+        self.trend_chart_4 = pg.PlotWidget()
+        self.trend_curve4_1 = self.trend_chart_4.plot(pen='r')  # Blue curve
+        self.trend_curve4_2 = self.trend_chart_4.plot(pen='g')  # Blue curve
+
         # Set the layout for the widget_trace QGroupBox
         self.main_window.ui.widget.layout().addWidget(self.trend_chart_1)
         self.main_window.ui.widget_2.layout().addWidget(self.trend_chart_2)
         self.main_window.ui.widget_3.layout().addWidget(self.trend_chart_3)
+        self.main_window.ui.widget_4.layout().addWidget(self.trend_chart_4)
 
         self.main_window.ui.actionSettings.triggered.connect(self.setting_window.show)
         self.main_window.ui.actionComm.triggered.connect(self.comm_window.show)
@@ -163,8 +259,18 @@ class AutoAPP(QMainWindow):
         self.trend_curve3_1.setData(self.data3_1)
         self.trend_curve3_2.setData(self.data3_2)
 
+        self.data4_1.append(h_spd_act)
+        self.data4_2.append(h_height)
+        self.data4_1 = self.data4_1[-self.data_limit:]
+        self.data4_2 = self.data4_2[-self.data_limit:]
+        self.trend_curve4_1.setData(self.data4_1)
+        self.trend_curve4_2.setData(self.data4_2)
+
     def closeEvent(self, event):
         rclpy.shutdown()
+    def update(self):
+        # Update PyQt application
+        self.app.processEvents()
 
     def start_point(self, h_pos_act=0, marker=[0,0,0,0]):
         self.setting_window.ui.label_hoist_height_top.setText(str(h_pos_act))
@@ -192,6 +298,64 @@ class AutoAPP(QMainWindow):
         with open('/home/ros/M58_auto/src/gui/param/param.yaml', 'w', encoding='utf-8') as file:
             yaml.safe_dump(data, file, sort_keys=False, default_flow_style=None)
 
+    def update_profile(self, profile_fix, profile_bay, path):
+        profile_fix_array = np.array(profile_fix).reshape(-1,2)
+        profile_bay_array = np.array(profile_bay).reshape(-1,2)
+        path_array = np.array(path).reshape(-1,2)
+
+        # self.ax.cla()
+
+        # 更新线条数据
+        self.line_fix.set_xdata(profile_fix_array[:,0])
+        self.line_fix.set_ydata(profile_fix_array[:,1])
+
+        # db = DBSCAN(eps=0.4, min_samples=1).fit(profile_bay_array)
+        # labels = db.labels_
+        # unique_labels = sorted(set(labels))
+
+        # for label in unique_labels:
+        #     cluster_points = profile_bay_array[labels == label]
+        #     if label > 99:
+        #         color=self.colors[0]
+        #     else:
+        #         color=self.colors[label]
+        #     self.ax.scatter(cluster_points[:, 0], cluster_points[:, 1], s= 5, )
+
+        self.line_block.set_xdata(profile_bay_array[:,0])
+        self.line_block.set_ydata(profile_bay_array[:,1])
+
+        # self.line_block.set_offsets(profile_blcok_array)
+
+        self.spd.set_offsets(path_array)
+
+        # 调整X轴范围
+        # self.ax.set_xlim(min(self.x_data) - 1, max(self.x_data) + 1)
+        # self.ax.set_ylim(min(self.y_data) - 1, max(self.y_data) + 1)
+
+        # 重新绘制图表
+        self.canvans.draw()
+    
+    def update_profile_pc(self, point_array):
+        # 清除之前的点云数据
+        self.points_vtk.Reset()
+        self.vertices.Reset()
+        num_points = point_array.shape[0]  # 获取点的数量
+
+        self.points_vtk.SetNumberOfPoints(num_points)
+        cells = np.arange(num_points, dtype=np.int64)
+        self.vertices.InsertNextCell(num_points, cells)
+
+        # 直接更新 vtkPoints 的数据
+        vtk_points_data = numpy_support.numpy_to_vtk(point_array, deep=True)
+        self.points_vtk.SetData(vtk_points_data)
+            # 通知VTK更新数据
+        self.points_vtk.Modified()
+        self.vertices.Modified()
+        self.polydata.Modified()
+
+        # 刷新渲染器
+        self.vtkWidget.GetRenderWindow().Render()
+    
     def set_target(self):
         pass
 

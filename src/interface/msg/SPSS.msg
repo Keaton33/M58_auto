@@ -74,4 +74,8 @@ int32 row24_t1
 int32 target_t
 int32 target_h
 
+float32[] profile_fix
+float32[] profile_bay
+
+float32[] path
 

@@ -116,5 +116,5 @@ def generate_launch_description():
         marker_node,
         spss_node,
         trolley_ctrl_node,
-        rviz_node,
+        # rviz_node,
     ])

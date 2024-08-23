@@ -1,9 +1,13 @@
 import ast
+import struct
+from sklearn.cluster import DBSCAN
 import yaml
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from interface.msg import SPSS, PLC
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs_py import point_cloud2
 import time
 
 class Profile(Node):
@@ -11,6 +15,7 @@ class Profile(Node):
         super().__init__('spss_node')
         self.pub_spss = self.create_publisher(SPSS, 'spss', 10)
         self.sub_plc = self.create_subscription(PLC, 'plc', self.cb_plc, 10)
+        self.sub_pc = self.create_subscription(PointCloud2, 'tf_pointcloud2', self.cb_pc, 10)
         self.spss = SPSS()
 
         '''
@@ -29,10 +34,16 @@ class Profile(Node):
             fixed_obstacle = data['/base/spss_node']['ros__parameters']['fixed_obstacle']
             fixed_obstacle_list = ast.literal_eval(fixed_obstacle)
             data_np = np.array(fixed_obstacle_list)
-            print(data_np[0])
             self.fixed_obstacle = data_np[data_np[:, 0].argsort()]
-            print(self.fixed_obstacle)
-                
+        
+        fix_profile_data = np.array([
+                                [row[0]/1000, row[1]/1000] if i % 2 == 0 else [row[2]/1000, row[1]/1000]
+                                for row in self.fixed_obstacle
+                                for i in range(2)
+                            ])
+
+        self.spss.profile_fix = fix_profile_data.flatten().tolist()[:-2]
+   
         self.profile = self.fixed_obstacle  #需结合轮廓扫描！！！
         self.preset_point = [15000, 16000], [30000, 16000], [40000, 12000]  #需根据TOS作业位置及轮廓计算预设点！！！
 
@@ -57,7 +68,55 @@ class Profile(Node):
 
         self.spss.target_t = self.target_t
         self.spss.target_h = self.target_h
+        self.spss.path = [self.t_pos_act/1000, self.h_pos_act/1000]
         self.pub_spss.publish(self.spss)
+
+    def cb_pc(self, msg:PointCloud2):
+        pc_np = point_cloud2.read_points(msg)
+        # pc_np_2d = pc_np.view(np.float32).reshape(pc_np.shape[0], -1)[:,:3]        
+        pc_np['x'] = np.round(pc_np['x']/0.05) *0.05
+        # 对新的数组按 x 排序
+        xy_sorted = np.sort(pc_np, order=['x', 'y'])
+        unique_x, indices = np.unique(xy_sorted['x'], return_index=True)
+        max_indices = np.minimum.reduceat(np.arange(len(xy_sorted)), indices)
+        pc_profile = xy_sorted[max_indices]
+        # self.pc_profile = np.column_stack((pc_profile['x'], pc_profile['y']))
+
+        # self.spss.profile_x = pc_profile['x'].tolist()
+        # self.spss.profile_y = pc_profile['y'].tolist()
+        print(pc_profile)
+        self.spss.profile_bay = [55.0,10.0,58.0,10.0,58.0,25.0,61.0,25.0,61.0,-8.0,66.0,-8.0]##################################################################################
+        points_bay = np.frombuffer(pc_profile, dtype=np.float32).reshape(-1, 8)[:, :2]
+
+        db = DBSCAN(eps=0.4, min_samples=3).fit(points_bay)
+        labels = db.labels_
+        # 计算差分，找到变化的点
+        diff = np.diff(labels)
+        # 计算分组的开始点
+        split_points = np.where(diff != 0)[0] + 1
+        # 在原始数组上插入切割点的前后
+        grouped_indices = np.split(np.arange(labels.size), split_points)
+        grouped_points = [points_bay[group].tolist() for group in grouped_indices]
+        simplified_groups = []
+        for group_indices in grouped_indices:
+            group_points = points_bay[group_indices]
+            x_min, y_min = group_points.min(axis=0)
+            x_max, y_max = group_points.max(axis=0)
+            simplified_groups.append([[x_min, y_max], [x_max, y_max]])
+        simplified_groups_np = np.array(simplified_groups)
+        self.get_logger().info(str(simplified_groups))
+
+
+        self.spss.profile_bay = simplified_groups_np.flatten().tolist()
+        # 打开文件（如果文件不存在，会自动创建）
+        with open("example.txt", "w") as file:
+            # 写入文本到文件
+            for point in points_bay:
+                file.write(f"{point[0]:.6f}, {point[1]:.6f}\n")
+
+
+        pc_marker = (pc_np['x'] > 0) & (0 < pc_np['y']) & (pc_np['y'] < 2) & (-1 < pc_np['z']) & (pc_np['z'] < 1)
+        # print(np.min(pc_np[pc_marker]['y']))
 
     def sc_trolley_target(self):
         if self.t_spd_cmd >= 0:

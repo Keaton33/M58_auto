@@ -217,7 +217,7 @@ class Comm(Node):
                 self.perform_modbus_operations()
                 # Publish updated PLC message
                 self.pub_plc.publish(self.plc)
-                self.get_logger().info(str(self.plc))
+                # self.get_logger().info(str(self.plc))
             except Exception as e:
                 self.get_logger().error(f"Modbus communication error: {e}")
 
