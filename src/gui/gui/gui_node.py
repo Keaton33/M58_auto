@@ -1,4 +1,3 @@
-from itertools import cycle
 import threading
 
 from matplotlib import pyplot as plt
@@ -115,7 +114,7 @@ class AutoAPP(QMainWindow):
         self.ax.tick_params(axis='both',which='major',labelsize=6)
         # self.ax.set_xlim(0, 120)
         # self.ax.set_ylim(-10, 55)
-        self.ax.set_xlim(-5, 5)
+        self.ax.set_xlim(-5, 8)
         self.ax.set_ylim(-5, 5)
         self.line_fix, = self.ax.plot([],[],marker=',', linestyle='-', color='black',markersize=2)
         self.line_block, = self.ax.plot([],[],marker='o', linestyle='-', color='b',markersize=2)
@@ -303,13 +302,12 @@ class AutoAPP(QMainWindow):
         profile_bay_array = np.array(profile_bay).reshape(-1,2)
         path_array = np.array(path).reshape(-1,2)
 
-        # self.ax.cla()
-
         # 更新线条数据
         self.line_fix.set_xdata(profile_fix_array[:,0])
         self.line_fix.set_ydata(profile_fix_array[:,1])
 
-        # db = DBSCAN(eps=0.4, min_samples=1).fit(profile_bay_array)
+        # self.ax.cla()
+        # db = DBSCAN(eps=0.4, min_samples=3).fit(profile_bay_array)
         # labels = db.labels_
         # unique_labels = sorted(set(labels))
 

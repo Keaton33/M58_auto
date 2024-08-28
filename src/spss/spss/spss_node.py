@@ -88,7 +88,7 @@ class Profile(Node):
         self.spss.profile_bay = [55.0,10.0,58.0,10.0,58.0,25.0,61.0,25.0,61.0,-8.0,66.0,-8.0]##################################################################################
         points_bay = np.frombuffer(pc_profile, dtype=np.float32).reshape(-1, 8)[:, :2]
 
-        db = DBSCAN(eps=0.4, min_samples=3).fit(points_bay)
+        db = DBSCAN(eps=0.3, min_samples=5).fit(points_bay)
         labels = db.labels_
         # 计算差分，找到变化的点
         diff = np.diff(labels)
@@ -107,6 +107,7 @@ class Profile(Node):
         self.get_logger().info(str(simplified_groups))
 
 
+        # self.spss.profile_bay = points_bay.flatten().tolist()
         self.spss.profile_bay = simplified_groups_np.flatten().tolist()
         # 打开文件（如果文件不存在，会自动创建）
         with open("example.txt", "w") as file:
